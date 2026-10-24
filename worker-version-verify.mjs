@@ -10,6 +10,8 @@
 // Env:   CLOUDFLARE_API_TOKEN (Workers Scripts: Read), CLOUDFLARE_ACCOUNT_ID
 // Exit:  0 same except static files and allowed bindings, 1 different, 2 usage or API error
 import { createHash } from 'node:crypto';
+import { realpathSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
 
 const API = 'https://api.cloudflare.com/client/v4';
 const STATIC_CONFIG = new Set(['_headers', '_redirects']);
@@ -72,7 +74,8 @@ function report(r) {
   return lines.join('\n');
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Run as a command, also through an npm bin symlink or from a path with spaces.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   const args = process.argv.slice(2), json = args.includes('--json');
   const at = args.indexOf('--allow'), allow = at >= 0 ? (args[at + 1] || '').split(',').filter(Boolean) : [];
   const [worker, next, base = 'live'] = args.filter((a, i) => a !== '--json' && i !== at && i !== at + 1);
